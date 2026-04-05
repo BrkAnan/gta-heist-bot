@@ -8,7 +8,7 @@ from datetime import datetime
 # ──────────────────────────────────────────────
 #  CONFIG — change these values
 # ──────────────────────────────────────────────
-BOT_TOKEN = "MTQ5MDQwNzg2MDIxNDA0Mjg1NQ.GXmohd.GiagsMRCjSEcz1ooTk-VhSdmASDVdqzYSWKVPw"
+BOT_TOKEN = ""
 VERIFIED_ROLE_NAME = "Verified"          # Role given after verification
 HOST_ROLE_NAME = "Heist Host"            # Role allowed to manage queue/sessions
 VERIFY_LOG_CHANNEL = "verify-log"        # Channel where verify requests appear
