@@ -4,6 +4,8 @@ from discord import app_commands
 import json
 import os
 import aiohttp
+from aiohttp import web
+import asyncio
 from datetime import datetime
 
 # ──────────────────────────────────────────────
@@ -16,6 +18,7 @@ VERIFY_LOG_CHANNEL = "verify-log"
 QUEUE_CHANNEL = "heist-queue"
 MAX_QUEUE_SIZE = 3
 DATA_FILE = "bot_data.json"
+PORT = int(os.environ.get("PORT", 8080))
 # ──────────────────────────────────────────────
 
 intents = discord.Intents.default()
@@ -23,6 +26,22 @@ intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ── Web server for UptimeRobot ping ───────────
+
+async def handle_ping(request):
+    return web.Response(text="Bot is running!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    print(f"✅ Web server running on port {PORT}")
+
+# ── Data helpers ──────────────────────────────
 
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -34,6 +53,8 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
+# ── Social Club checker ───────────────────────
+
 async def check_social_club(username: str) -> bool:
     url = f"https://socialclub.rockstargames.com/member/{username}/"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"}
@@ -43,6 +64,8 @@ async def check_social_club(username: str) -> bool:
                 return resp.status == 200
     except Exception:
         return False
+
+# ── Bot ready ─────────────────────────────────
 
 @bot.event
 async def on_ready():
@@ -106,6 +129,7 @@ async def verify(interaction: discord.Interaction, social_club_name: str):
         embed.set_footer(text=f"User ID: {interaction.user.id}")
         await log_channel.send(embed=embed)
 
+
 @bot.tree.command(name="forceverify", description="[Host] Manually verify a member")
 @app_commands.describe(member="Discord member", social_club_name="Their Social Club name")
 async def forceverify(interaction: discord.Interaction, member: discord.Member, social_club_name: str):
@@ -126,6 +150,7 @@ async def forceverify(interaction: discord.Interaction, member: discord.Member, 
         await member.add_roles(role)
     await interaction.response.send_message(f"✅ {member.mention} manually verified as **{social_club_name}**.", ephemeral=True)
 
+
 @bot.tree.command(name="unverify", description="[Host] Remove a member's verification")
 @app_commands.describe(member="Discord member to unverify")
 async def unverify(interaction: discord.Interaction, member: discord.Member):
@@ -143,6 +168,7 @@ async def unverify(interaction: discord.Interaction, member: discord.Member):
     if role and role in member.roles:
         await member.remove_roles(role)
     await interaction.response.send_message(f"🗑️ {member.mention} has been unverified.", ephemeral=True)
+
 
 # ── QUEUE ─────────────────────────────────────
 
@@ -273,5 +299,9 @@ async def whois(interaction: discord.Interaction, member: discord.Member):
 
 # ── RUN ───────────────────────────────────────
 
-bot.tree.add_command(queue_group)
-bot.run(BOT_TOKEN)
+async def main():
+    await start_web_server()
+    bot.tree.add_command(queue_group)
+    await bot.start(BOT_TOKEN)
+
+asyncio.run(main())
