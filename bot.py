@@ -33,7 +33,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=["!", "?"], intents=intents)
+bot = commands.Bot(command_prefix=["!", "?"], intents=intents, help_command=None)
 
 # ── In-memory caches ─────────────────────────
 snipe_cache = {}          # channel_id -> {content, author, time, attachments}
